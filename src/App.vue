@@ -1,26 +1,70 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div :class="{ 'b-check-detail-fileload-loader': !loaded }">
+    <div v-if="error" class="b-check-detail-fileload-error" @click="clickError">
+      {{ error }}
+    </div>
+
+    <div v-if="loaded">
+      <div v-for="block in blocks" :data-id="block.id" :key="block.id">
+        <collapse-block
+          v-if="blockVisible(block)"
+          :block="block"
+          :key="block.id"
+        ></collapse-block>
+      </div>
+    </div>
+    <div v-else>
+      <div class="circle-loader">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+        <div class="circle circle-4"></div>
+        <div class="circle circle-5"></div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import CollapseBlock from './components/CollapseBlock.vue';
 
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-}
-</script>
+  name: 'FileloadApp',
+  computed: {
+    loaded() {
+      return !!this.$store.state.data && !!this.$store.state.statuses;
+    },
+    error() {
+      return !!this.$store.state.error;
+    },
+    blocks() {
+      if (this.loaded) return this.$store.state.data.blocks;
+    },
+  },
+  methods: {
+    blockVisible(block) {
+      return (
+        block.permissions.moderation ||
+        block.permissions.write ||
+        (block.permissions.read && block.state === 'filled')
+      );
+    },
+    clickError() {
+      this.$store.commit('showError', { error: false });
+    },
+  },
+  beforeMount() {
+    const vkkrId = document
+      .getElementById('checkDetailFileload')
+      .getAttribute('data-vkkrid');
+    if (!vkkrId) return;
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
+    this.$store.commit('setVkkrId', { vkkrId });
+    this.$store.dispatch('loadStatuses');
+    this.$store.dispatch('loadState');
+  },
+  components: {
+    CollapseBlock,
+  },
+};
+</script>
